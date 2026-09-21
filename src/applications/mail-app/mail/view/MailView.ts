@@ -1516,8 +1516,20 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 	private async showLabelDeleteDialog(label: MailSet) {
 		const labelSystem = mailLocator.mailModel.getLabelFolderSystemByGroupId(assertNotNull(label._ownerGroup))
 		if (labelSystem == null) return
+
+		const descendants = labelSystem.getDescendantFoldersOfParent(label._id)
+		const allLabelsBeingDeleted = [...descendants.map((set) => set.mailSet), label]
+		const allInboxRulesBeingModified = await mailLocator.inboxRuleModel.getInboxRulesThatReferenceMailSets(allLabelsBeingDeleted)
+
+		if (!isEmpty(allInboxRulesBeingModified)) {
+			const confirmed = await showDeleteFolderPopup(getMailSetName(label), [])
+			if (!confirmed) return
+		}
+
 		const confirmed = await showDeleteFolderPopup(getMailSetName(label), [])
 		if (!confirmed) return
+
+		await mailLocator.inboxRuleModel.deactivateInboxRulesThatReferenceMailSets(allLabelsBeingDeleted)
 		await this.mailViewModel.deleteLabel(label).catch(ofClass(NotFoundError, () => console.log("label already deleted")))
 	}
 	private renderEditMailboxButton(onEditMailbox: () => unknown) {
