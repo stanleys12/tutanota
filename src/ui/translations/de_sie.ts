@@ -2566,6 +2566,10 @@ export default {
 		"markUnread_action": "Ungelesen markieren",
 		"inboxRuleSenderEquals_action": "Absenderadresse",
 		"selectLabel_action": "Label(s) auswählen",
-		"labelMustBeSelected_msg": "Mindestens ein Label muss ausgewählt werden."
+		"labelMustBeSelected_msg": "Mindestens ein Label muss ausgewählt werden.",
+		"moveFolderToTrash_label": "Ordner wird in Papierkorb verschoben",
+		"confirmToss_label": "Löschen bestätigen",
+		"confirmMoveFolderToTrash_msg": "Möchten Sie den Ordner '{1}' wirklich in den Papierkorb verschieben? Ordner oder Unterordner, die keine E-Mails enthalten, werden unwiderruflich gelöscht.",
+		"deactivateInboxRules_msg": "{1} Posteingangsregeln werden deaktiviert",
 	}
 }

@@ -17,6 +17,7 @@ import { MailReportType, MailSetKind } from "../../../../entities/tutanota/Utils
 import { isFolderReadOnly } from "../MailUtils"
 import { elementIdPart, elementIdToId, getElementId, isSameId, listIdPart } from "../../../../platform-kit/meta"
 import { checkMailSetName } from "./MailGuiUtils"
+import { showDeleteFolderPopup } from "./DeleteMailSetPopup"
 
 /**
  * Dialog for Edit and Add folder are the same.
@@ -96,14 +97,7 @@ export async function showEditFolderDialog(
 			} else {
 				// if it is being moved to trash (and not already in trash), ask about trashing
 				if (selectedParentFolder?.folderType === MailSetKind.TRASH && !isSameId(selectedParentFolder._id, editedFolder.parentFolder)) {
-					const confirmed = await Dialog.confirm(
-						lang.makeTranslation(
-							"confirm",
-							lang.get("confirmDeleteCustomFolder_msg", {
-								"{1}": getMailSetName(editedFolder),
-							}),
-						),
-					)
+					const confirmed = await showDeleteFolderPopup(getMailSetName(editedFolder), [])
 					if (!confirmed) return
 
 					await locator.mailFacade.updateMailFolderName(editedFolder, folderNameValue)

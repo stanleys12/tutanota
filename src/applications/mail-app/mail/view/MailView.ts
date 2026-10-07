@@ -84,11 +84,12 @@ import { ExpanderPanel } from "../../../../ui/base/Expander"
 import { MailLabelsView } from "./MailLabelsView"
 import { showEditLabelDialog } from "./EditLabelDialog"
 import { ButtonSize } from "../../../../ui/base/ButtonSize"
-import { LockedError, NotFoundError } from "../../../../platform-kit/rest-client/error"
+import { NotFoundError } from "../../../../platform-kit/rest-client/error"
 import { Keys } from "../../../../ui/utils/KeyboardKeys"
 import { DropdownButtonAttrs } from "../../../../ui/base/Dropdown"
 import { showNotAvailableForFreeDialog } from "../../../common/misc/SubscriptionDialogs"
 import { IndexingNotSupportedError } from "../../../common/api/common/error/IndexingNotSupportedError"
+import { showDeleteFolderPopup } from "./DeleteMailSetPopup"
 
 EnvProvider.assertMainOrNode()
 
@@ -1448,11 +1449,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 			if (!confirmed) return
 			await this.mailViewModel.mailModel.finallyDeleteCustomMailFolder(folder)
 		} else {
-			const confirmed = await Dialog.confirm(
-				lang.getTranslation("confirmDeleteCustomFolder_msg", {
-					"{1}": getMailSetName(folder),
-				}),
-			)
+			const confirmed = await showDeleteFolderPopup(getMailSetName(folder), [])
 			if (!confirmed) return
 			await this.mailViewModel.mailModel.trashFolderAndSubfolders(folder)
 		}
@@ -1519,12 +1516,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 	private async showLabelDeleteDialog(label: MailSet) {
 		const labelSystem = mailLocator.mailModel.getLabelFolderSystemByGroupId(assertNotNull(label._ownerGroup))
 		if (labelSystem == null) return
-		const hasSublabels = isNotEmpty(labelSystem.getDescendantFoldersOfParent(label._id))
-		const confirmed = await Dialog.confirm(
-			lang.getTranslation(hasSublabels ? "confirmDeleteLabelWithSublabels_msg" : "confirmDeleteLabel_msg", {
-				"{1}": label.name,
-			}),
-		)
+		const confirmed = await showDeleteFolderPopup(getMailSetName(label), [])
 		if (!confirmed) return
 		await this.mailViewModel.deleteLabel(label).catch(ofClass(NotFoundError, () => console.log("label already deleted")))
 	}

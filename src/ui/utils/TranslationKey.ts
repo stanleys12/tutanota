@@ -2566,3 +2566,7 @@ export type TranslationKeyType =
 	| "inboxRuleActions_label"
 	| "selectLabel_action"
 	| "labelMustBeSelected_msg"
+	| "moveFolderToTrash_label"
+	| "confirmToss_label"
+	| "confirmMoveFolderToTrash_msg"
+	| "deactivateInboxRules_msg"
