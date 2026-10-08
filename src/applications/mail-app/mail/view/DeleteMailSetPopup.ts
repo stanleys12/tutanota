@@ -60,33 +60,35 @@ class DeleteMailSetDialog implements Component<DeleteMailSetDialogAttrs> {
 				iconOptions: { color: theme.error },
 			}),
 			m(Card, m(".plr-12.flex.flex-column.gap-16.center", lang.getTranslation("confirmMoveFolderToTrash_msg", { "{1}": attrs.mailSetName }).text)),
-			m(SectionButton, {
-				leftIcon: { icon: Icons.Filter, title: "inboxRulesSettings_action" },
-				text: lang.getTranslation("deactivateInboxRules_msg", { "{1}": attrs.affectedInboxRuleNames.length }),
-				// injectionRight: model.editModels.whoModel.guests.length > 0 ? m("span", model.editModels.whoModel.guests.length) : null,
-				onclick: () => {
-					// FIXME this.transitionTo(EditorPages.GUESTS, navigationCallback)
-				},
-				style: {
-					minHeight: px(size.core_48),
-				},
-				cardStyle: {
-					padding: px(size.spacing_12),
-				},
-			}),
+			attrs.affectedInboxRuleNames.length > 0
+				? m(SectionButton, {
+						leftIcon: { icon: Icons.FunnelFilled, title: "inboxRulesSettings_action" },
+						text: lang.getTranslation("deactivateInboxRules_msg", { "{1}": attrs.affectedInboxRuleNames.length }),
+						// injectionRight: model.editModels.whoModel.guests.length > 0 ? m("span", model.editModels.whoModel.guests.length) : null,
+						onclick: () => {
+							// FIXME this.transitionTo(EditorPages.GUESTS, navigationCallback)
+						},
+						style: {
+							minHeight: px(size.core_48),
+						},
+						cardStyle: {
+							padding: px(size.spacing_12),
+						},
+					})
+				: null,
 			m(".flex.row.gap-8", [
-				m(PrimaryButton, {
-					class: "flex-grow center-vertically",
-					label: "delete_action",
-					onclick: () => {
-						attrs.deletionChoice(true)
-					},
-				}),
 				m(SecondaryButton, {
 					class: "flex-grow center-vertically",
 					label: "cancel_action",
 					onclick: () => {
 						attrs.deletionChoice(false)
+					},
+				}),
+				m(PrimaryButton, {
+					class: "flex-grow center-vertically",
+					label: "delete_action",
+					onclick: () => {
+						attrs.deletionChoice(true)
 					},
 				}),
 			]),

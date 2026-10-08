@@ -632,6 +632,8 @@ export class MailModel {
 		})
 	}
 
+	// FIXME see if we need this
+	// FIXME also see if we should use getInboxRulesThatReferenceMailSetSystem instead
 	async getDeactivatedInboxRulesOnMailSetDeletion(set: MailSet): Promise<ExpandedInboxRule[]> {
 		return (
 			(await this.cleanupMailSetToDelete(set, async (mailsets) => {

@@ -20,6 +20,7 @@ import { getMailSetName } from "./MailUtils"
 import { MailModel } from "./MailModel"
 import { lang } from "../../../../ui/utils/LanguageViewModel"
 import { isNull } from "../../../../platform-kit/utils/Utils"
+import { FolderSystem } from "../../../common/api/common/mail/FolderSystem"
 
 export class InboxRuleModel {
 	private usingLegacyInboxRules: boolean = true
@@ -148,7 +149,14 @@ export class InboxRuleModel {
 		return this.usingLegacyInboxRules
 	}
 
+	async getInboxRulesThatReferenceMailSetSystem(root: MailSet, system: FolderSystem) {
+		const descendants = [root, ...system.getDescendantFoldersOfParent(root._id).map((set) => set.mailSet)]
+		return await this.getInboxRulesThatReferenceMailSets(descendants)
+	}
+
 	async getInboxRulesThatReferenceMailSets(sets: readonly MailSet[]): Promise<ExpandedInboxRule[]> {
+		if (this.usingLegacyInboxRules) return []
+
 		const userMailboxGroupRoot = await this.getUserMailboxGroupRoot()
 		const relevantLabels = sets.filter((label) => label._ownerGroup === userMailboxGroupRoot._ownerGroup)
 		if (isEmpty(relevantLabels)) {

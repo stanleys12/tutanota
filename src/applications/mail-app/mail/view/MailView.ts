@@ -1449,9 +1449,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 			if (!confirmed) return
 			await this.mailViewModel.mailModel.finallyDeleteCustomMailFolder(folder)
 		} else {
-			const descendants = folders.getDescendantFoldersOfParent(folder._id)
-			const allFoldersBeingDeleted = [...descendants.map((set) => set.mailSet), folder]
-			const allInboxRulesBeingModified = await mailLocator.inboxRuleModel.getInboxRulesThatReferenceMailSets(allFoldersBeingDeleted)
+			const allInboxRulesBeingModified = await mailLocator.inboxRuleModel.getInboxRulesThatReferenceMailSetSystem(folder, folders)
 			const confirmed = await showDeleteFolderPopup(
 				getMailSetName(folder),
 				allInboxRulesBeingModified.map((rule) => rule.name),
@@ -1523,9 +1521,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		const labelSystem = mailLocator.mailModel.getLabelFolderSystemByGroupId(assertNotNull(label._ownerGroup))
 		if (labelSystem == null) return
 
-		const descendants = labelSystem.getDescendantFoldersOfParent(label._id)
-		const allLabelsBeingDeleted = [...descendants.map((set) => set.mailSet), label]
-		const allInboxRulesBeingModified = await mailLocator.inboxRuleModel.getInboxRulesThatReferenceMailSets(allLabelsBeingDeleted)
+		const allInboxRulesBeingModified = await mailLocator.inboxRuleModel.getInboxRulesThatReferenceMailSetSystem(label, labelSystem)
 
 		const confirmed = await showDeleteFolderPopup(
 			getMailSetName(label),
