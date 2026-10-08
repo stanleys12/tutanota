@@ -1441,10 +1441,11 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		const folders = await this.mailViewModel.mailModel.getMailboxFoldersForId(mailboxDetail.mailbox.mailSets._id)
 
 		if (isSpamOrTrashFolder(folders, folder)) {
-			const confirmed = await Dialog.confirm(
-				lang.getTranslation("confirmDeleteFinallyCustomFolder_msg", {
-					"{1}": getMailSetName(folder),
-				}),
+			const allInboxRulesBeingModified = await mailLocator.inboxRuleModel.getInboxRulesThatReferenceMailSetSystem(folder, folders)
+			const confirmed = await showDeleteFolderPopup(
+				getMailSetName(folder),
+				allInboxRulesBeingModified.map((rule) => rule.name),
+				"delete",
 			)
 			if (!confirmed) return
 			await this.mailViewModel.mailModel.finallyDeleteCustomMailFolder(folder)
@@ -1453,6 +1454,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 			const confirmed = await showDeleteFolderPopup(
 				getMailSetName(folder),
 				allInboxRulesBeingModified.map((rule) => rule.name),
+				"trash",
 			)
 			if (!confirmed) return
 			await this.mailViewModel.mailModel.trashFolderAndSubfolders(folder)
@@ -1526,6 +1528,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		const confirmed = await showDeleteFolderPopup(
 			getMailSetName(label),
 			allInboxRulesBeingModified.map((rule) => rule.name),
+			"delete",
 		)
 		if (!confirmed) return
 

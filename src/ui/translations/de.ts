@@ -2568,6 +2568,8 @@ export default {
 		"selectLabel_action": "Label(s) auswählen",
 		"labelMustBeSelected_msg": "Mindestens ein Label muss ausgewählt werden.",
 		"confirmTrashAction_label": "Wegwurf bestätigen",
+		"confirmDeleteAction_label": "Löschen bestätigen",
+		"confirmSpamAction_label": "Spam bestätigen",
 		"confirmMoveFolderToTrash_msg": "Möchtest du den Ordner '{1}' wirklich in den Papierkorb verschieben? Ordner oder Unterordner, die keine E-Mails enthalten, werden unwiderruflich gelöscht.",
 		"affectedInboxRules_msg": "{1} Posteingangsregeln wären betroffen",
 		"pleaseSelectFolder_msg": "Bitte wähle einen Ordner aus.",

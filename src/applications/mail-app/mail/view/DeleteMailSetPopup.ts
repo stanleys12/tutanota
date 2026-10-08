@@ -9,11 +9,11 @@ import { Keys } from "../../../../ui/utils/KeyboardKeys"
 import { SectionButton } from "../../../../ui/base/buttons/SectionButton"
 import { px, size } from "../../../../ui/size"
 
-export function showDeleteFolderPopup(mailSetName: string, affectedInboxRuleNames: string[]): Promise<boolean> {
+export function showDeleteFolderPopup(mailSetName: string, affectedInboxRuleNames: string[], messageType: "spam" | "trash" | "delete"): Promise<boolean> {
 	return new Promise((resolve) => {
 		const dialog: Dialog = Dialog.editMediumDialog(
 			{
-				middle: "confirmTrashAction_label",
+				middle: messageType === "spam" ? "confirmSpamAction_label" : messageType === "trash" ? "confirmTrashAction_label" : "confirmDeleteAction_label",
 			},
 			DeleteMailSetDialog,
 			{
@@ -23,6 +23,7 @@ export function showDeleteFolderPopup(mailSetName: string, affectedInboxRuleName
 					resolve(continueDeletion)
 					dialog.close()
 				},
+				messageType,
 			},
 			{ backgroundColor: theme.surface_container },
 		)
@@ -47,6 +48,8 @@ interface DeleteMailSetDialogAttrs {
 	mailSetName: string
 	affectedInboxRuleNames: string[]
 	deletionChoice: (continueDeletion: boolean) => void
+	// FIXME separate messages for separate states
+	messageType: "spam" | "trash" | "delete"
 }
 
 class DeleteMailSetDialog implements Component<DeleteMailSetDialogAttrs> {
@@ -54,7 +57,14 @@ class DeleteMailSetDialog implements Component<DeleteMailSetDialogAttrs> {
 		return m(".pt-16.pb-16.flex.col.gap-16", { style: { backgroundColor: theme.surface_container } }, [
 			m(TitleSection, {
 				title: "",
-				subTitle: lang.getTranslation("confirmMoveFolderToTrash_msg", { "{1}": attrs.mailSetName }).text,
+				subTitle: lang.getTranslation(
+					attrs.messageType === "spam"
+						? "confirmSpamCustomFolder_msg"
+						: attrs.messageType === "trash"
+							? "confirmDeleteCustomFolder_msg"
+							: "confirmDelete_msg",
+					{ "{1}": attrs.mailSetName },
+				).text,
 				icon: Icons.ExclamationOutline,
 				iconOptions: { color: theme.error },
 			}),

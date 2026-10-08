@@ -101,6 +101,7 @@ export async function showEditFolderDialog(
 					const confirmed = await showDeleteFolderPopup(
 						getMailSetName(editedFolder),
 						allInboxRulesBeingModified.map((rule) => rule.name),
+						"trash",
 					)
 					if (!confirmed) return
 
@@ -108,13 +109,11 @@ export async function showEditFolderDialog(
 					await mailLocator.mailModel.trashFolderAndSubfolders(editedFolder)
 				} else if (selectedParentFolder?.folderType === MailSetKind.SPAM && !isSameId(selectedParentFolder._id, editedFolder.parentFolder)) {
 					// if it is being moved to spam (and not already in spam), ask about reporting containing emails
-					const confirmed = await Dialog.confirm(
-						lang.makeTranslation(
-							"confirm",
-							lang.get("confirmSpamCustomFolder_msg", {
-								"{1}": getMailSetName(editedFolder),
-							}),
-						),
+					const allInboxRulesBeingModified = await mailLocator.inboxRuleModel.getInboxRulesThatReferenceMailSetSystem(editedFolder, folders)
+					const confirmed = await showDeleteFolderPopup(
+						getMailSetName(editedFolder),
+						allInboxRulesBeingModified.map((rule) => rule.name),
+						"spam",
 					)
 					if (!confirmed) return
 
