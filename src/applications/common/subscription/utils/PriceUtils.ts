@@ -216,7 +216,7 @@ export class PriceAndConfigProvider {
 
 	private getExternalPaymentsSubscriptionPrice(subscription: PlanType, paymentInterval: PaymentInterval) {
 		const planName = PlanTypeToName[subscription]
-		const externalSubscriptionPrices = this.getMobilePrices().get(planName.toLowerCase())
+		const externalSubscriptionPrices = this.getMobilePrices()?.get(planName.toLowerCase())
 
 		if (!externalSubscriptionPrices) {
 			throw new Error(`no such iOS plan ${planName}`)
@@ -247,8 +247,8 @@ export class PriceAndConfigProvider {
 		return getPriceForUpgradeType(upgrade, prices)
 	}
 
-	getMobilePrices(): Map<string, MobilePlanPrice> {
-		return assertNotNull(this.mobilePrices)
+	getMobilePrices(): Map<string, MobilePlanPrice> | null {
+		return this.mobilePrices
 	}
 
 	getPlanPricesForPlan(subscription: PlanType): PlanPrices {

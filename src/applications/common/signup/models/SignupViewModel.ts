@@ -196,7 +196,7 @@ export class SignupViewModel implements PlanSelectionModel, PaymentDetailsModel,
 
 	hasPrices(): boolean {
 		if (this.planPrices?.getMobilePrices() != null) {
-			return this.planPrices.getMobilePrices().size != 0
+			return this.planPrices.getMobilePrices()?.size != 0
 		} else {
 			return this.planPrices?.getRawPricingData().plans.length != 0
 		}

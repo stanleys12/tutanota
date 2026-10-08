@@ -569,7 +569,10 @@ export class SubscriptionSettingsViewer implements UpdatableSettingsViewer {
 		if (EnvProvider.get().getPaymentSetup() !== PaymentSetup.Default) {
 			// We pass `null` because we expect no subscription when upgrading
 			const externalSubscriptionOwnership = await queryExternalSubscriptionOwnership(null)
-
+			console.log(externalSubscriptionOwnership)
+			if (externalSubscriptionOwnership === null) {
+				return Dialog.message(lang.getTranslation("appStoreSubscriptionError_msg"))
+			}
 			if (externalSubscriptionOwnership !== MobilePaymentSubscriptionOwnership.NoSubscription) {
 				return Dialog.message(
 					lang.getTranslation("storeMultiSubscriptionError_msg", {

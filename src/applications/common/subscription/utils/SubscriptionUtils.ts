@@ -474,7 +474,7 @@ export function getPriceStr({ priceAndConfigProvider, targetPlan, paymentInterva
  * If a discount is applied, `referencePriceStr` will show the normal yearly price instead. Otherwise, `referencePriceStr` will be `undefined`.
  */
 export function getApplePriceStr({ priceAndConfigProvider, targetPlan, paymentInterval }: GetPriceStrProps): GetPriceStrReturn {
-	const applePrices = priceAndConfigProvider.getMobilePrices().get(PlanTypeToName[targetPlan].toLowerCase())
+	const applePrices = priceAndConfigProvider.getMobilePrices()?.get(PlanTypeToName[targetPlan].toLowerCase())
 	if (!applePrices) {
 		console.warn("Cannot get the apple prices")
 		return { priceStr: "", referencePriceStr: "" }
@@ -506,7 +506,7 @@ export function getRawApplePrice({ priceAndConfigProvider, targetPlan, paymentIn
 	referencePrice: number
 } {
 	const planKey = PlanTypeToName[targetPlan].toLowerCase()
-	const applePrices = priceAndConfigProvider.getMobilePrices().get(planKey)
+	const applePrices = priceAndConfigProvider.getMobilePrices()?.get(planKey)
 	if (!applePrices) {
 		throw new Error("Cannot get the apple prices of plan: " + planKey)
 	}

@@ -45,7 +45,7 @@ export class PlanSelectorPage implements ClassComponent<PlanSelectorPageAttrs> {
 			[PlanType.Legend]: getAsLazy(button),
 		}
 		const isWideBusinessLayout = data.options.businessUse() && !forceMobileBusinessLayout
-		const actuallyAvailablePlans: ReadonlyArray<AvailablePlanType> = ctx.viewModel.hasPrices() ? availablePlans! : [PlanType.Free]
+		const actuallyAvailablePlans: ReadonlyArray<AvailablePlanType> = ctx.viewModel.hasPrices() ? availablePlans : [PlanType.Free]
 		return m(
 			`.full-width${Styles.get().isMobileLayout() ? ".pt-16" : ""}`,
 			// Upgrade messages explain plan requirements; signup may report store-subscription errors.
