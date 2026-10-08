@@ -3,7 +3,6 @@ import { lang } from "../../../../ui/utils/LanguageViewModel"
 import { TitleSection } from "../../../../ui/TitleSection"
 import { Icons } from "../../../../ui/base/icons/Icons"
 import { theme } from "../../../../ui/theme"
-import { Card } from "../../../../ui/base/Card"
 import { PrimaryButton, SecondaryButton } from "../../../../ui/base/buttons/VariantButtons.js"
 import { Dialog } from "../../../../ui/base/Dialog"
 import { Keys } from "../../../../ui/utils/KeyboardKeys"
@@ -14,7 +13,7 @@ export function showDeleteFolderPopup(mailSetName: string, affectedInboxRuleName
 	return new Promise((resolve) => {
 		const dialog: Dialog = Dialog.editMediumDialog(
 			{
-				middle: "moveFolderToTrash_label",
+				middle: "confirmTrashAction_label",
 			},
 			DeleteMailSetDialog,
 			{
@@ -54,12 +53,11 @@ class DeleteMailSetDialog implements Component<DeleteMailSetDialogAttrs> {
 	view({ attrs }: Vnode<DeleteMailSetDialogAttrs>) {
 		return m(".pt-16.pb-16.flex.col.gap-16", { style: { backgroundColor: theme.surface_container } }, [
 			m(TitleSection, {
-				title: lang.getTranslationText("confirmToss_label"),
-				subTitle: null,
+				title: "",
+				subTitle: lang.getTranslation("confirmMoveFolderToTrash_msg", { "{1}": attrs.mailSetName }).text,
 				icon: Icons.ExclamationOutline,
 				iconOptions: { color: theme.error },
 			}),
-			m(Card, m(".plr-12.flex.flex-column.gap-16.center", lang.getTranslation("confirmMoveFolderToTrash_msg", { "{1}": attrs.mailSetName }).text)),
 			attrs.affectedInboxRuleNames.length > 0
 				? m(SectionButton, {
 						leftIcon: { icon: Icons.FunnelFilled, title: "inboxRulesSettings_action" },

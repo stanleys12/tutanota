@@ -31,17 +31,7 @@ import { MailFacade } from "../../../common/api/worker/facades/lazy/MailFacade.j
 import { assertSystemFolderOfType } from "./MailUtils.js"
 import { ProcessInboxHandler } from "./ProcessInboxHandler"
 import { BulkMailLoader, MailWithMailDetails } from "../../workerUtils/index/BulkMailLoader"
-import {
-	ExpandedInboxRule,
-	Mail,
-	MailboxGroupRoot,
-	MailboxProperties,
-	MailSet,
-	MailSetEntryTypeRef,
-	MailSetTypeRef,
-	MailTypeRef,
-	MovedMails,
-} from "@tutao/entities/tutanota"
+import { Mail, MailboxGroupRoot, MailboxProperties, MailSet, MailSetEntryTypeRef, MailSetTypeRef, MailTypeRef, MovedMails } from "@tutao/entities/tutanota"
 import { MailReportType, MailSetKind, MAX_NBR_OF_MAILS_SYNC_OPERATION, ReportMovedMailsType, SystemFolderType } from "../../../../entities/tutanota/Utils"
 import { isLabel, SimpleMoveMailTarget } from "../MailUtils"
 import { EntityUpdateData, isUpdateForTypeRef, ListenerPriority } from "../../../../platform-kit/instance-pipeline/utils/EntityUpdateUtils"
@@ -413,7 +403,7 @@ export class MailModel {
 		if (folderSystem == null) return
 		const deletedFolder = await this.removeAllEmpty(folderSystem, folder)
 		if (!deletedFolder) {
-			await this.deactivateInboxRulesOnMailSetDeletion(folder)
+			await this.deactivateInboxRulesOnFolderDeletion(folder)
 			return this.mailFacade.updateMailFolderParent(folder, assertSystemFolderOfType(folderSystem, MailSetKind.SPAM)._id)
 		}
 	}
@@ -523,7 +513,7 @@ export class MailModel {
 
 		const deletedFolder = await this.removeAllEmpty(folderSystem, folder)
 		if (!deletedFolder) {
-			await this.deactivateInboxRulesOnMailSetDeletion(folder)
+			await this.deactivateInboxRulesOnFolderDeletion(folder)
 			const trash = assertSystemFolderOfType(folderSystem, MailSetKind.TRASH)
 			return this.mailFacade.updateMailFolderParent(folder, trash._id)
 		}
@@ -577,7 +567,7 @@ export class MailModel {
 			throw new ProgrammingError("Cannot delete non-custom folder: " + String(folder._id))
 		}
 
-		await this.deactivateInboxRulesOnMailSetDeletion(folder)
+		await this.deactivateInboxRulesOnFolderDeletion(folder)
 		return await this.mailFacade
 			.deleteFolder(folder._id)
 			.catch(ofClass(NotFoundError, () => console.log("mail folder already deleted")))
@@ -622,35 +612,32 @@ export class MailModel {
 	}
 
 	async deleteLabel(label: MailSet) {
-		await this.deactivateInboxRulesOnMailSetDeletion(label)
+		await this.deactivateInboxRulesOnLabelDeletion(label)
 		await this.mailFacade.deleteLabel(label)
 	}
 
-	private async deactivateInboxRulesOnMailSetDeletion(set: MailSet): Promise<void> {
-		await this.cleanupMailSetToDelete(set, async (mailsets) => {
-			await this.inboxRuleModel().deactivateInboxRulesThatReferenceMailSets(mailsets)
-		})
-	}
-
-	// FIXME see if we need this
-	// FIXME also see if we should use getInboxRulesThatReferenceMailSetSystem instead
-	async getDeactivatedInboxRulesOnMailSetDeletion(set: MailSet): Promise<ExpandedInboxRule[]> {
-		return (
-			(await this.cleanupMailSetToDelete(set, async (mailsets) => {
-				return await this.inboxRuleModel().getInboxRulesThatReferenceMailSets(mailsets)
-			})) ?? []
-		)
-	}
-
-	private async cleanupMailSetToDelete<T>(set: MailSet, cleanupFn: (mailsets: MailSet[]) => Promise<T>): Promise<T | null> {
-		const folderSystem = this.getFolderSystemByGroupId(assertNotNull(set._ownerGroup))
-		if (folderSystem == null) {
-			return null
+	private async deactivateInboxRulesOnLabelDeletion(label: MailSet): Promise<void> {
+		const labelSystem = this.getLabelFolderSystemByGroupId(assertNotNull(label._ownerGroup))
+		if (labelSystem == null) {
+			return
 		}
 
-		const descendents = folderSystem.getDescendantFoldersOfParent(set._id).map(({ mailSet }) => mailSet)
-		const mailsets = [...descendents, set]
-		return await cleanupFn(mailsets)
+		const descendants = labelSystem.getDescendantFoldersOfParent(label._id).map(({ mailSet }) => mailSet)
+		const labels = [...descendants, label]
+
+		await this.inboxRuleModel().deactivateInboxRulesThatReferenceLabels(labels)
+	}
+
+	private async deactivateInboxRulesOnFolderDeletion(folder: MailSet): Promise<void> {
+		const folderSystem = this.getFolderSystemByGroupId(assertNotNull(folder._ownerGroup))
+		if (folderSystem == null) {
+			return
+		}
+
+		const descendants = folderSystem.getDescendantFoldersOfParent(folder._id).map(({ mailSet }) => mailSet)
+		const folders = [...descendants, folder]
+
+		await this.inboxRuleModel().deactivateInboxRulesThatReferenceFolders(folders)
 	}
 
 	async getMailSetById(folderElementId: Id): Promise<MailSet | null> {

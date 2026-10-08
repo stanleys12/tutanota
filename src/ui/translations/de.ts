@@ -2567,11 +2567,10 @@ export default {
 		"inboxRuleSenderEquals_action": "Absenderadresse",
 		"selectLabel_action": "Label(s) auswählen",
 		"labelMustBeSelected_msg": "Mindestens ein Label muss ausgewählt werden.",
-		"moveFolderToTrash_label": "Ordner wird in Papierkorb verschoben",
-		"confirmToss_label": "Löschen bestätigen",
+		"confirmTrashAction_label": "Wegwurf bestätigen",
 		"confirmMoveFolderToTrash_msg": "Möchtest du den Ordner '{1}' wirklich in den Papierkorb verschieben? Ordner oder Unterordner, die keine E-Mails enthalten, werden unwiderruflich gelöscht.",
 		"deactivateInboxRules_msg": "{1} Posteingangsregeln werden deaktiviert",
 		"pleaseSelectFolder_msg": "Bitte wähle einen Ordner aus.",
-		"inboxRuleInvalid_label": "Diese Posteingangsregel enthält ungültige Werte. Bitte bearbeite sie, um den Fehlerzustand zu beheben."
+		"inboxRuleInvalid_label": "Diese Posteingangsregel enthält ungültige Werte. Bitte bearbeite sie, um den Fehlerzustand zu beheben.",
 	}
 }

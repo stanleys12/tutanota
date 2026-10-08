@@ -2567,11 +2567,11 @@ export default {
 		"inboxRuleToRecipientEquals_action": "\"To\" recipient is",
 		"inboxRuleBCCRecipientEquals_action": "\"Bcc\" recipient is",
 		"inboxRuleCCRecipientEquals_action": "\"Cc\" recipient is",
-		"moveFolderToTrash_label": "Folder moving to trash",
- 		"confirmToss_label": "Confirm toss",
+		"confirmTrashAction_label": "Confirm trash action",
 		"confirmMoveFolderToTrash_msg": "Do you really want to move folder '{1}' to trash? Folders and subfolders which don't contain any emails will be permanently deleted.",
 		"deactivateInboxRules_msg": "{1} inbox rules will be deactivated",
 		"pleaseSelectFolder_msg": "Please select a folder.",
-		"inboxRuleInvalid_label": "This inbox rule contains invalid values. Please edit it to fix the fault condition."
+		"inboxRuleInvalid_label": "This inbox rule contains invalid values. Please edit it to fix the fault condition.",
+		"pleaseRemoveDeletedLabels_msg": "Please remove deleted labels."
 	}
 }

@@ -174,12 +174,30 @@ export class InboxRuleModel {
 		})
 	}
 
-	async deactivateInboxRulesThatReferenceMailSets(sets: readonly MailSet[]): Promise<void> {
-		const rules = await this.getInboxRulesThatReferenceMailSets(sets)
+	async deactivateInboxRulesThatReferenceLabels(labels: readonly MailSet[]): Promise<void> {
+		const rules = await this.getInboxRulesThatReferenceMailSets(labels)
+		for (const rule of rules) {
+			const firstLabelRuleIndex = rule.actions.findIndex((action) => action.type === InboxRuleActionType.LABEL)
+
+			if (firstLabelRuleIndex > -1) {
+				// Remove all label actions reference a deleted label
+				rule.actions = rule.actions.filter((action) => !labels.some((label) => isSameId(action.value, label._id)))
+				if (rule.actions.filter((action) => action.type === InboxRuleActionType.LABEL).length === 0) {
+					// if all labels were removed we want the invalid placeholder
+					rule.actions.splice(firstLabelRuleIndex, 0, createInboxRuleAction({ type: InboxRuleActionType.LABEL, value: null }))
+					rule.enabled = false
+				}
+			}
+			await this.updateInboxRule(rule)
+		}
+	}
+
+	async deactivateInboxRulesThatReferenceFolders(folders: readonly MailSet[]): Promise<void> {
+		const rules = await this.getInboxRulesThatReferenceMailSets(folders)
 		for (const rule of rules) {
 			rule.enabled = false
 			for (const action of rule.actions) {
-				if (sets.some((label) => isSameId(action.value, label._id))) {
+				if (folders.some((folder) => isSameId(action.value, folder._id))) {
 					action.value = null
 				}
 			}
