@@ -2496,5 +2496,13 @@ export default {
 		"confirmDeleteLabelWithSublabels_msg": "Are you sure that you want to delete the label \"{1}\" and all its sublabels?",
 		"migrationGreetingTimeout_msg": "We could not establish a connection to the IMAP server due a timeout. Please verify that the provided IMAP server information is correct, and your network allows connections to this IMAP server and check if your connection is secure(SSL), if so please make sure you've checked the setting during setup.",
 		"migrationUseSSL_label": "Use SSL/TLS",
+		"multiuserMigration_label": "Migration",
+		"migrationScheduledInfo_msg": "Your administrator has initiated a migration for your account. Please authenticate with your account from the old provider to proceed.",
+		"migrationOAuthSignInInfo_msg": "You will be redirected to your email provider to sign in securely. No password is stored in Tuta.",
+		"migrationScheduled_title": "Migration Scheduled",
+		"migrationComplete_action": "Complete migration",
+		"migrationNotAllMailboxesCompleteYet_msg": "Not all mailboxes have completed their migration, please make sure this is done before completing the migration.",
+		"migrationFinishing_msg": "Finishing migration ...",
+		"migrationCompleting_msg": "Completing migration ...",
 	}
 }

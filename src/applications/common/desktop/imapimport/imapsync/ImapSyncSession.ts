@@ -58,7 +58,6 @@ export class ImapSyncSession implements SyncSessionEventListener {
 		private imapSyncConfig: ImapSyncConfig,
 		private imapFlowFactory: ImapFlowFactory = async (imapCredentials, imapSyncConfig, verifyOnly?: boolean) => {
 			const { ImapFlow } = await import("./imapflow-custom")
-
 			const systemCertificates = await this.certificateProvider.getCertificates()
 			const customCertificateData = imapCredentials.customCertificateData
 			const customCertificate = customCertificateData !== null ? [utf8Uint8ArrayToString(customCertificateData)] : []
@@ -221,7 +220,7 @@ export class ImapSyncSession implements SyncSessionEventListener {
 		return imapMailboxes
 	}
 
-	private async verifyImapConnection(imapCredentials: ImapCredentials) {
+	public async verifyImapConnection(imapCredentials: ImapCredentials) {
 		const connectionWorksImapClient = await this.imapFlowFactory(imapCredentials, this.imapSyncConfig, true)
 		connectionWorksImapClient.on("error", (entry) => {
 			console.log(`[${entry.name}] ${entry.message}, ${entry.cause}`)

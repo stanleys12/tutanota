@@ -20,8 +20,10 @@ import { showUpdateImapCredentialsDialog } from "../../../common/gui/dialogs/Upd
 import { OAuthHandler } from "./oauth/OAuthHandler"
 import { Dialog } from "../../../../ui/base/Dialog"
 import { ImapErrorHandler, ReadableImapError } from "./ImapErrorHandler"
-import { ImapErrorCause } from "../../../common/api/common/error/ImapError"
+import { ImapError, ImapErrorCause } from "../../../common/api/common/error/ImapError"
 import { lang } from "../../../../ui/utils/LanguageViewModel"
+import { showInitialImapCredentialsDialog } from "../../../common/gui/dialogs/InitialImapCredentialsDialog"
+import { randomHexColor } from "../../../common/api/common/utils/imapImportUtils/ImapImportUtils"
 
 assertMainOrNode()
 
@@ -57,6 +59,7 @@ export class ImapMailImportController {
 	public canceledImapImportUiSessions: ImapImportUiSession[] = []
 	private imapImportResyncIntervalId: TimeoutID | null = null
 	private isDisplayingOauthCredentialPopup = false
+	private isDisplayingInitialCredentialsPopup = false
 
 	constructor(
 		private readonly imapImporter: ImapImporter,
@@ -95,6 +98,14 @@ export class ImapMailImportController {
 						Dialog.message("migrationGmailAllMailsDisabledImapError_msg")
 					}
 				}
+				if (update.operation === OperationType.CREATE) {
+					const imapAccountSyncStateId = collapseId(update.instanceListId, update.instanceId) as IdTuple
+					const imapAccountSyncState = await this.entityClient.load(ImapAccountSyncStateTypeRef, imapAccountSyncStateId)
+					const shouldDisplayInitializationDialog = imapAccountSyncState.status === ImapAccountSyncStatus.SCHEDULED
+					if (shouldDisplayInitializationDialog) {
+						await this.displayInitialImapCredentialsDialog(imapAccountSyncState)
+					}
+				}
 			}
 		}
 	}
@@ -125,6 +136,52 @@ export class ImapMailImportController {
 				},
 				() => {
 					this.isDisplayingOauthCredentialPopup = false
+				},
+			)
+		}
+	}
+
+	private async displayInitialImapCredentialsDialog(imapAccountSyncState: ImapAccountSyncState) {
+		const mailGroupId = assertNotNull(imapAccountSyncState._ownerGroup)
+		const name = imapAccountSyncState.imapAccount.username
+
+		// we do not create a sync label for Gmail, as the rootImportMailSet itself is a label and all labels are
+		// imported under this label, and we fetch All Mail to a folder with the same name and assign labels accordingly.
+		const isGmail = parseInt(imapAccountSyncState.provider) === ImapProvider.Gmail
+		if (isGmail) {
+			imapAccountSyncState.rootImportMailSet = await this.mailModel.createLabel(mailGroupId, {
+				name,
+				color: randomHexColor(),
+			})
+		} else {
+			imapAccountSyncState.imapSyncLabel = await this.mailModel.createLabel(mailGroupId, {
+				name,
+				color: randomHexColor(),
+			})
+		}
+
+		await this.entityClient.update(imapAccountSyncState)
+
+		if (!this.isDisplayingInitialCredentialsPopup) {
+			this.isDisplayingInitialCredentialsPopup = true
+			showInitialImapCredentialsDialog(
+				{
+					syncState: imapAccountSyncState,
+					oauthHandlerFactory: (config, serviceExecutor) => new OAuthHandler(config, serviceExecutor),
+				},
+				async (dialog, updatedAccount) => {
+					if (updatedAccount) {
+						imapAccountSyncState.imapAccount = updatedAccount
+						imapAccountSyncState.status = ImapAccountSyncStatus.PAUSED
+						await this.entityClient.update(imapAccountSyncState)
+						await this.continueImport(imapAccountSyncState._id)
+						dialog.close()
+					} else {
+						// Think of case we don't have the updated account sucessfully?
+					}
+				},
+				() => {
+					this.isDisplayingInitialCredentialsPopup = false
 				},
 			)
 		}
@@ -176,15 +233,21 @@ export class ImapMailImportController {
 			return await this.imapImporter.continueImport(imapAccountSyncStateId, isForceRetry, retryAttempts)
 		} catch (e) {
 			console.log(`failed to continue imap sync for imapAccountSyncState: ${imapAccountSyncStateId}`, e)
+			let errorCause: null | ImapErrorCause = null
+			if (e.name === "ImapError" && !Number.isNaN(e.data)) {
+				errorCause = e.data as ImapErrorCause
+			} else {
+				errorCause = ImapErrorCause.UNKNOWN
+			}
 
 			if (this.imapErrorHandler.isAuthError(e) && retryAttempts < 1) {
-				await this.pauseImport(imapAccountSyncStateId)
+				await this.pauseImport(imapAccountSyncStateId, errorCause)
 				const shouldRetry = await this.imapErrorHandler.handleImapError(e, undefined, imapAccountSyncStateId)
 				if (shouldRetry) {
 					return await this.continueImport(imapAccountSyncStateId, false, 1)
 				} else {
 					const postponedUntilDate = new Date(Date.now() + IMAP_AUTH_ERROR_POSTPONE_TIME)
-					await this.imapImporter.postponeImport(imapAccountSyncStateId, postponedUntilDate)
+					await this.imapImporter.postponeImport(imapAccountSyncStateId, postponedUntilDate, errorCause)
 					return Promise.resolve({
 						state: { status: ImapAccountSyncStatus.POSTPONED, postponedUntil: postponedUntilDate },
 						remoteStateId: imapAccountSyncStateId,
@@ -198,7 +261,7 @@ export class ImapMailImportController {
 				})
 			} else {
 				const postponedUntilDate = new Date(Date.now() + IMAP_ERROR_POSTPONE_TIME)
-				await this.imapImporter.postponeImport(imapAccountSyncStateId, postponedUntilDate)
+				await this.imapImporter.postponeImport(imapAccountSyncStateId, postponedUntilDate, errorCause)
 				return Promise.resolve({
 					state: { status: ImapAccountSyncStatus.POSTPONED, postponedUntil: postponedUntilDate },
 					remoteStateId: imapAccountSyncStateId,
@@ -216,19 +279,22 @@ export class ImapMailImportController {
 				session.imapAccountSyncState.status === ImapAccountSyncStatus.CANCELED ||
 				session.imapAccountSyncState.status === ImapAccountSyncStatus.PAUSED ||
 				session.imapAccountSyncState.status === ImapAccountSyncStatus.AUTH_ERROR ||
-				session.imapAccountSyncState.status === ImapAccountSyncStatus.ERROR
+				session.imapAccountSyncState.status === ImapAccountSyncStatus.ERROR ||
+				session.imapAccountSyncState.status === ImapAccountSyncStatus.COMPLETED_SUCCESSFULLY
 			) {
 				continue
 			}
-
+			if (session.imapAccountSyncState.status === ImapAccountSyncStatus.SCHEDULED) {
+				await this.displayInitialImapCredentialsDialog(session.imapAccountSyncState)
+			}
 			const imapAccountSyncStateId = session.imapAccountSyncState._id
 			await this.continueImport(imapAccountSyncStateId)
 		}
 	}
 
-	async pauseImport(accountSyncStateId: IdTuple) {
+	async pauseImport(accountSyncStateId: IdTuple, errorCause: ImapErrorCause | null = null) {
 		this.isInStateTransition = true
-		await this.imapImporter.pauseImport(accountSyncStateId)
+		await this.imapImporter.pauseImport(accountSyncStateId, errorCause)
 		await this.updateActiveUiSessions()
 		this.isInStateTransition = false
 	}
@@ -277,11 +343,15 @@ export class ImapMailImportController {
 	}
 
 	shouldRenderClockIcon(session: ImapImportUiSession) {
-		return session.imapAccountSyncStatus === ImapAccountSyncStatus.POSTPONED
+		return session.imapAccountSyncStatus === ImapAccountSyncStatus.POSTPONED || session.imapAccountSyncStatus === ImapAccountSyncStatus.SCHEDULED
 	}
 
 	shouldRenderCheckmarkIcon(session: ImapImportUiSession) {
 		return session.imapAccountSyncStatus === ImapAccountSyncStatus.FINISHED
+	}
+
+	shouldRenderCompleteIcon(session: ImapImportUiSession) {
+		return session.imapAccountSyncStatus === ImapAccountSyncStatus.COMPLETED_SUCCESSFULLY
 	}
 
 	shouldRenderErrorIcon(session: ImapImportUiSession) {

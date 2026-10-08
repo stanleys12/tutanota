@@ -92,6 +92,7 @@ import { WebMailIndexer } from "../index/WebMailIndexer"
 import { CustomImportFileMailStateCacheHandler } from "./CustomImportFileMailStateCacheHandler"
 import { OfflineMapper } from "../../../../platform-kit/instance-pipeline/OfflineMapper"
 import { CustomImapFolderSyncStateCacheHandler } from "./CustomImapFolderSyncStateCacheHandler"
+import type { CustomerMigrationFacade } from "../../../common/api/worker/facades/lazy/CustomerMigrationFacade"
 
 assertWorkerOrNode()
 
@@ -145,6 +146,8 @@ export type WorkerLocatorType = {
 
 	// IMAP mail import
 	imapImporter: lazyAsync<ImapImporter>
+	// customer migration
+	customerMigrationFacade: lazyAsync<CustomerMigrationFacade>
 }
 
 export const locator: WorkerLocatorType = {} as any
@@ -652,6 +655,20 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData, 
 		)
 
 		return new ImapImporter(new ImapSyncSystemFacadeSendDispatcher(worker), imapFacade, importMailFacade)
+	})
+
+	locator.customerMigrationFacade = lazyMemoized(async () => {
+		const { CustomerMigrationFacade } = await import("../../../common/api/worker/facades/lazy/CustomerMigrationFacade.js")
+		const mailFacade = await locator.mail()
+		return new CustomerMigrationFacade(
+			mailFacade,
+			locator.base.user,
+			locator.base.serviceExecutor,
+			locator.base.cachingEntityClient,
+			locator.base.adminKeyLoader,
+			locator.base.keyLoader,
+			locator.base.cryptoWrapper,
+		)
 	})
 
 	const eventBusCoordinator = new EventBusEventCoordinator(

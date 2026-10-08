@@ -33,10 +33,14 @@ assertMainOrNode()
 
 class ImapImportSettingsViewer implements UpdatableSettingsViewer {
 	private mailboxIdToImportHistoryExpanded: Map<Id, boolean> = new Map<Id, boolean>()
+	private canEditMigrations: boolean = false
 
 	constructor(private readonly imapImportController: lazy<ImapMailImportController>) {}
 
 	async oninit() {
+		// the user can edit migrations if they are a single user or if they are a global admin
+		const userController = mailLocator.logins.getUserController()
+		this.canEditMigrations = !(await userController.canHaveUsers()) || userController.isGlobalAdmin()
 		await this.imapImportController().initUiSessions()
 
 		const mailboxDetails = this.imapImportController().mailboxDetails
@@ -52,11 +56,10 @@ class ImapImportSettingsViewer implements UpdatableSettingsViewer {
 		const hasActiveSync = this.imapImportController().hasActiveSync()
 		const hasCanceledSync = this.imapImportController().hasCanceledSync()
 		return m(
-			".fill-absolute.scroll.plr-24.pb-48",
+			".fill-absolute.scroll.plr-24.pb-48.gap-16",
 			{
 				style: {
 					backgroundColor: theme.surface_container,
-					gap: "16px",
 					display: "flex",
 					flexDirection: "column",
 				},
@@ -65,8 +68,8 @@ class ImapImportSettingsViewer implements UpdatableSettingsViewer {
 				this.renderTitleSection(),
 				hasActiveSync ? this.renderActiveSyncsTitle() : this.renderInfo(),
 				this.renderSyncProgressForActiveSyncSessions(),
-				this.renderButton(),
-				hasCanceledSync ? this.renderImapImportHistories() : null,
+				this.canEditMigrations ? this.renderButton() : null,
+				this.canEditMigrations && hasCanceledSync ? this.renderImapImportHistories() : null,
 			],
 		)
 	}
@@ -76,7 +79,7 @@ class ImapImportSettingsViewer implements UpdatableSettingsViewer {
 			m(TitleSection, {
 				icon: Icons.DownloadFilled,
 				title: lang.getTranslationText("migration_title"),
-				subTitle: lang.getTranslationText("migrationInfo_msg"),
+				subTitle: lang.getTranslationText(this.canEditMigrations ? "migrationInfo_msg" : "migrationInfoReadonly_msg"),
 			}),
 		])
 	}
@@ -100,80 +103,82 @@ class ImapImportSettingsViewer implements UpdatableSettingsViewer {
 			const buttons: Children[] = []
 
 			const accountSyncStateId = session.imapAccountSyncStateId
-			if (this.imapImportController().shouldRenderPauseButton(session)) {
-				// Running
-				buttons.push(
-					m(IconButton, {
-						title: "pauseMigration_action",
-						icon: Icons.PauseOutline,
-						size: ButtonSize.Normal,
-						disabled: this.imapImportController().shouldDisableButtons(),
-						click: () => {
-							this.imapImportController().pauseImport(accountSyncStateId)
-						},
-					}),
-				)
-			} else if (this.imapImportController().shouldRenderResyncButton(session)) {
-				// Finished or Postponed
-				buttons.push(
-					m(IconButton, {
-						title: "resyncMigration_action",
-						icon: Icons.Refresh,
-						size: ButtonSize.Normal,
-						disabled: this.imapImportController().shouldDisableButtons(),
-						click: () => {
-							if (session.imapAccountSyncStatus === ImapAccountSyncStatus.AUTH_ERROR) {
-								//We already know how to handle auth state errors so we prommpt the user for the update on a resync
-								this.imapImportController().promptUpdateImapCredentialsDialog(accountSyncStateId)
-							} else {
+			if (this.canEditMigrations) {
+				if (this.imapImportController().shouldRenderPauseButton(session)) {
+					// Running
+					buttons.push(
+						m(IconButton, {
+							title: "pauseMigration_action",
+							icon: Icons.PauseOutline,
+							size: ButtonSize.Normal,
+							disabled: this.imapImportController().shouldDisableButtons(),
+							click: () => {
+								this.imapImportController().pauseImport(accountSyncStateId)
+							},
+						}),
+					)
+				} else if (this.imapImportController().shouldRenderResyncButton(session)) {
+					// Finished or Postponed
+					buttons.push(
+						m(IconButton, {
+							title: "resyncMigration_action",
+							icon: Icons.Refresh,
+							size: ButtonSize.Normal,
+							disabled: this.imapImportController().shouldDisableButtons(),
+							click: () => {
+								if (session.imapAccountSyncStatus === ImapAccountSyncStatus.AUTH_ERROR) {
+									//We already know how to handle auth state errors so we prommpt the user for the update on a resync
+									this.imapImportController().promptUpdateImapCredentialsDialog(accountSyncStateId)
+								} else {
+									this.imapImportController()
+										.continueImport(accountSyncStateId, true)
+										.catch((e) => {
+											//Auth failing errors do not need to bubble up as programming errors.
+											if (e.data !== ImapErrorCause.AUTH_FAILED) {
+												throw e
+											}
+										})
+								}
+							},
+						}),
+					)
+				} else if (this.imapImportController().shouldRenderPlayButton(session)) {
+					// Paused
+					buttons.push(
+						m(IconButton, {
+							title: "resumeMigration_action",
+							icon: Icons.PlayOutline,
+							size: ButtonSize.Normal,
+							disabled: this.imapImportController().shouldDisableButtons(),
+							click: () => {
 								this.imapImportController()
-									.continueImport(accountSyncStateId, true)
+									.continueImport(accountSyncStateId)
 									.catch((e) => {
 										//Auth failing errors do not need to bubble up as programming errors.
 										if (e.data !== ImapErrorCause.AUTH_FAILED) {
 											throw e
 										}
 									})
-							}
-						},
-					}),
-				)
-			} else if (this.imapImportController().shouldRenderPlayButton(session)) {
-				// Paused
+							},
+						}),
+					)
+				}
 				buttons.push(
 					m(IconButton, {
-						title: "resumeMigration_action",
-						icon: Icons.PlayOutline,
+						title: "cancel_action",
+						icon: Icons.X,
 						size: ButtonSize.Normal,
 						disabled: this.imapImportController().shouldDisableButtons(),
 						click: () => {
-							this.imapImportController()
-								.continueImport(accountSyncStateId)
-								.catch((e) => {
-									//Auth failing errors do not need to bubble up as programming errors.
-									if (e.data !== ImapErrorCause.AUTH_FAILED) {
-										throw e
-									}
-								})
+							return Dialog.confirm("migrationCancelConfirm_msg").then((confirmed) => {
+								if (confirmed) {
+									showProgressDialog("pleaseWait_msg", this.imapImportController().deleteImport(accountSyncStateId))
+								}
+							})
 						},
 					}),
 				)
 			}
-			buttons.push(
-				m(IconButton, {
-					title: "cancel_action",
-					icon: Icons.X,
-					size: ButtonSize.Normal,
-					disabled: this.imapImportController().shouldDisableButtons(),
-					click: () => {
-						return Dialog.confirm("migrationCancelConfirm_msg").then((confirmed) => {
-							if (confirmed) {
-								showProgressDialog("pleaseWait_msg", this.imapImportController().deleteImport(accountSyncStateId))
-							}
-						})
-					},
-				}),
-			)
 
 			let syncMessage = lang.getTranslation(
 				session.provider === ImapProvider.Gmail ? "migrationInProgressInfoGmail_msg" : "migrationInProgressInfo_msg",
@@ -298,12 +303,13 @@ class ImapImportSettingsViewer implements UpdatableSettingsViewer {
 
 	private renderPastSyncSessionsForMailboxCancelledSessions(canceledImapImportUiSessionsForMailGroup: ImapImportUiSession[]): Children {
 		return canceledImapImportUiSessionsForMailGroup.map((session) => {
-			const statusIcon = Icons.Checkmark
+			const isCompletedSuccessfully = session.imapAccountSyncStatus === ImapAccountSyncStatus.COMPLETED_SUCCESSFULLY
+			const statusIcon = isCompletedSuccessfully ? Icons.SuccessFilled : Icons.Checkmark
 			const statusIconParameters: Partial<IconAttrs> = {
 				icon: statusIcon,
 				class: "",
 				style: {
-					fill: theme.on_surface,
+					fill: isCompletedSuccessfully ? theme.success : theme.on_surface,
 				},
 			}
 			const importedMailsMessage = lang.getTranslation("migrationHistoryTotalImportedMails_msg", {

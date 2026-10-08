@@ -1,13 +1,14 @@
 import { ImapCredentials, ImapMailboxState, ImapMailId, ImapSyncContext } from "../../../common/api/common/utils/imapImportUtils/ImapSyncContext.js"
 import { ImapMailbox, ImapMailboxSpecialUse, ImapMailboxStatus } from "../../../common/api/common/utils/imapImportUtils/ImapMailbox.js"
 import { ImapMail, ImapMailAttachment } from "../../../common/api/common/utils/imapImportUtils/ImapMail.js"
-import { ImapError } from "../../../common/api/common/error/ImapError.js"
+import { ImapError, ImapErrorCause } from "../../../common/api/common/error/ImapError.js"
 
 import { assertNotNull, getFirstOrThrow, isEmpty, partition, promiseMap, uint8ArrayToString } from "@tutao/utils"
 import { sha256Hash } from "@tutao/crypto"
 import { ImapImportDataFile, ImapImportTutaFileId, ImportMailFacade, ImportMailParams } from "../../../common/api/worker/facades/lazy/ImportMailFacade"
 import { SuspensionError } from "../../../common/api/common/error/SuspensionError"
 import { ImapGetMailboxResult } from "../../../common/api/common/utils/imapImportUtils/ImapGetMailboxResult"
+import { ImapVerifyConnectionResult } from "../../../common/api/common/utils/imapImportUtils/ImapVerifyConnectionResult"
 import { ImapImportSession, newImapImportSession } from "./ImapImportSession"
 import { ImapProvider } from "../../../common/api/common/utils/imapImportUtils/ImapKnownConfigs"
 import {
@@ -169,6 +170,7 @@ export class ImapImporter implements ImapSyncFacade {
 			session.imapAccountSyncState,
 			ImapAccountSyncStatus.RUNNING,
 			ImapFolderSyncStatus.RUNNING,
+			null,
 		)
 		return Promise.resolve({
 			state: { status: ImapAccountSyncStatus.RUNNING },
@@ -176,7 +178,7 @@ export class ImapImporter implements ImapSyncFacade {
 		})
 	}
 
-	async pauseImport(accountSyncStateId: IdTuple): Promise<void> {
+	async pauseImport(accountSyncStateId: IdTuple, errorCause: ImapErrorCause | null = null): Promise<void> {
 		const session = this.getImapImportSessionOrNull(accountSyncStateId)
 		if (session !== null) {
 			await this.imapSyncSystemFacade.stopSync(session.imapAccountSyncState._id)
@@ -184,11 +186,12 @@ export class ImapImporter implements ImapSyncFacade {
 				session.imapAccountSyncState,
 				ImapAccountSyncStatus.PAUSED,
 				ImapFolderSyncStatus.PAUSED,
+				errorCause,
 			)
 		}
 	}
 
-	async postponeImport(accountSyncStateId: IdTuple, postponedUntil: Date): Promise<void> {
+	async postponeImport(accountSyncStateId: IdTuple, postponedUntil: Date, errorCause: ImapErrorCause | null = null): Promise<void> {
 		const session = this.getImapImportSessionOrNull(accountSyncStateId)
 		if (session !== null) {
 			await this.imapSyncSystemFacade.stopSync(session.imapAccountSyncState._id)
@@ -196,6 +199,7 @@ export class ImapImporter implements ImapSyncFacade {
 				session.imapAccountSyncState,
 				ImapAccountSyncStatus.POSTPONED,
 				ImapFolderSyncStatus.PAUSED,
+				errorCause,
 				postponedUntil.getTime().toString(),
 			)
 		}
@@ -209,7 +213,7 @@ export class ImapImporter implements ImapSyncFacade {
 				session.imapAccountSyncState,
 				ImapAccountSyncStatus.GMAIL_ALL_MAILS_IMAP_DISABLED_ERROR,
 				ImapFolderSyncStatus.PAUSED,
-				undefined,
+				ImapErrorCause.GMAIL_ALL_MAILS_IMAP_DISABLED,
 			)
 		}
 	}
@@ -222,6 +226,10 @@ export class ImapImporter implements ImapSyncFacade {
 
 	async getImapMailboxesFromServer(imapCredentials: ImapCredentials): Promise<ImapGetMailboxResult> {
 		return await this.imapSyncSystemFacade.getImapMailboxesFromServer(imapCredentials)
+	}
+
+	async verifyImapConnection(imapCredentials: ImapCredentials): Promise<ImapVerifyConnectionResult> {
+		return await this.imapSyncSystemFacade.verifyImapConnection(imapCredentials)
 	}
 
 	private async getAllImapMailboxStates(session: ImapImportSession): Promise<ImapMailboxState[]> {
@@ -343,15 +351,28 @@ export class ImapImporter implements ImapSyncFacade {
 				}
 
 				if (!session.imapFolderSyncStates.some((folder) => folder.path === imapMailbox.path)) {
-					const shouldSync = parentFolderSyncState === null || parentFolderSyncState.status !== ImapFolderSyncStatus.NO_SYNC
-					const shouldCreateLabels = isGmail && !isALLSystemFolder
-					const folderSyncState = await this.imapFacade.initializeImapMailSet(
-						imapMailbox,
-						session.imapAccountSyncState,
-						parentImportFolderId,
-						shouldSync,
-						shouldCreateLabels,
-					)
+					const isAdminControlledMigration = session.imapAccountSyncState.mailboxMigrationInformation !== null
+					const mailGroupId = assertNotNull(session.imapAccountSyncState._ownerGroup)
+					let folderSyncState: ImapFolderSyncState | undefined
+					const existingFolder = await this.imapFacade.getFolderForImapMailboxIfExists(imapMailbox, mailGroupId)
+					// We do a specialUse and name-based mapping between ImapMailboxes and user folders if an admin started the migration and the provider is not Gmail
+					if (isAdminControlledMigration && !isGmail && existingFolder) {
+						folderSyncState = await this.imapFacade.createImapFolderSyncStateForExistingFolder(
+							imapMailbox,
+							session.imapAccountSyncState,
+							existingFolder,
+						)
+					} else {
+						const shouldSync = parentFolderSyncState === null || parentFolderSyncState.status !== ImapFolderSyncStatus.NO_SYNC
+						const shouldCreateLabels = isGmail && !isALLSystemFolder
+						folderSyncState = await this.imapFacade.initializeImapMailSet(
+							imapMailbox,
+							session.imapAccountSyncState,
+							parentImportFolderId,
+							shouldSync,
+							shouldCreateLabels,
+						)
+					}
 					if (folderSyncState) {
 						const folderSyncStateIndex = session.imapFolderSyncStates.findIndex((imapFolderSyncState) =>
 							isSameId(folderSyncState._id, imapFolderSyncState._id),
@@ -390,7 +411,7 @@ export class ImapImporter implements ImapSyncFacade {
 					session.imapAccountSyncState,
 					ImapAccountSyncStatus.ERROR,
 					ImapFolderSyncStatus.CANCELED,
-					undefined,
+					null,
 				)
 				console.error(
 					`uidvalidity of a folder has changed for the account sync state ${accountSyncStateId} on mail group ${folderSyncState._ownerGroup}.`,
@@ -476,6 +497,7 @@ export class ImapImporter implements ImapSyncFacade {
 				session.imapAccountSyncState,
 				ImapAccountSyncStatus.FINISHED,
 				ImapFolderSyncStatus.FINISHED,
+				null,
 			)
 		}
 	}
@@ -586,7 +608,9 @@ export class ImapImporter implements ImapSyncFacade {
 		})
 		const [activeSessions, canceledSessions] = partition(
 			imapImportUiSessions,
-			(imapImportUiSession) => imapImportUiSession.imapAccountSyncStatus !== ImapAccountSyncStatus.CANCELED,
+			(imapImportUiSession) =>
+				imapImportUiSession.imapAccountSyncStatus !== ImapAccountSyncStatus.CANCELED &&
+				imapImportUiSession.imapAccountSyncStatus !== ImapAccountSyncStatus.COMPLETED_SUCCESSFULLY,
 		)
 		return Promise.resolve({ activeSessions, canceledSessions })
 	}
