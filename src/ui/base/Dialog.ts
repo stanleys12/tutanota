@@ -86,10 +86,10 @@ export interface ChoiceCancellableResult<T> {
 
 export class Dialog implements ModalComponent {
 	private static keyboardHeight: number = 0
-	private domDialog: HTMLElement | null = null
-	private _shortcuts: Shortcut[]
 	view: ModalComponent["view"]
 	visible: boolean
+	private domDialog: HTMLElement | null = null
+	private _shortcuts: Shortcut[]
 	private focusOnLoadFunction: (dom: HTMLElement) => void
 	private wasFocusOnLoadCalled: boolean
 	private closeHandler: Thunk | null = null
@@ -214,157 +214,6 @@ export class Dialog implements ModalComponent {
 			)
 		}
 	}
-
-	setInjectionRight(injectionRightAttrs: DialogInjectionRightAttrs<any>) {
-		this.injectionRightAttrs = injectionRightAttrs
-	}
-
-	private defaultFocusOnLoad(dom: HTMLElement) {
-		const inputs = Array.from(dom.querySelectorAll(INPUT)) as Array<HTMLElement>
-		const scrollableWrapper = dom.querySelector(".dialog-container.scroll") as HTMLElement | null
-
-		if (inputs.length > 0) {
-			inputs[0].focus()
-		} else if (!scrollableWrapper) {
-			let button = dom.querySelector("button")
-
-			if (button) {
-				button.focus()
-			}
-		} else {
-			scrollableWrapper.tabIndex = Number(TabIndex.Default)
-			scrollableWrapper.focus()
-		}
-	}
-
-	/**
-	 * By default, the focus is set on the first text field after this dialog is fully visible.
-	 * This behavior can be overwritten by calling this function.
-	 * If it has already been called, then calls it instantly
-	 */
-	setFocusOnLoadFunction(callback: Dialog["focusOnLoadFunction"]): this {
-		this.focusOnLoadFunction = callback
-
-		if (this.wasFocusOnLoadCalled) {
-			this.focusOnLoadFunction(assertNotNull(this.domDialog))
-		}
-		return this
-	}
-
-	private getDialogWrapperClasses(dialogType: DialogType): string {
-		// change direction of axis to handle resize of dialogs (iOS keyboard open changes size)
-		let dialogWrapperStyle = ".fill-absolute.flex.items-stretch.flex-column"
-
-		if (dialogType === DialogType.EditLarge) {
-			dialogWrapperStyle += ".flex-start"
-		} else {
-			dialogWrapperStyle += ".flex-center" // vertical alignment
-		}
-
-		return dialogWrapperStyle
-	}
-
-	private getDialogStyle(dialogType: DialogType): string {
-		let dialogStyle = ".dialog.elevated-bg.flex-grow.border-radius-top-8"
-
-		if (dialogType === DialogType.Progress) {
-			dialogStyle += ".dialog-width-s.dialog-progress.border-radius-bottom-8"
-		} else if (dialogType === DialogType.Alert) {
-			dialogStyle += ".dialog-width-alert.pt-16.border-radius-bottom-8"
-		} else if (dialogType === DialogType.Reminder) {
-			dialogStyle += ".dialog-width-m.pt-16.flex.flex-column.border-radius-bottom-8"
-		} else if (dialogType === DialogType.EditSmall) {
-			dialogStyle += ".dialog-width-s.flex.flex-column.border-radius-bottom-8"
-		} else if (dialogType === DialogType.EditMedium) {
-			dialogStyle += ".dialog-width-m.border-radius-bottom-8"
-		} else if (dialogType === DialogType.EditLarge || dialogType === DialogType.EditLarger) {
-			dialogStyle += ".dialog-width-l.border-radius-bottom-8"
-		} else if (dialogType === DialogType.SetupWizard) {
-			dialogStyle = ".dialog.flex-grow.border-radius-top-8.dialog-width-l.border-radius-bottom-8.nav-bg"
-		}
-
-		return dialogStyle
-	}
-
-	addShortcut(shortcut: Shortcut): Dialog {
-		this._shortcuts.push(shortcut)
-
-		if (this.visible) {
-			KeyManager.get().registerModalShortcuts([shortcut])
-		}
-
-		return this
-	}
-
-	/**
-	 * Sets a close handler to the dialog. If set the handler will be notified when onClose is called on the dialog.
-	 * The handler must is then responsible for closing the dialog.
-	 */
-	setCloseHandler(closeHandler: (() => unknown) | null): Dialog {
-		this.closeHandler = closeHandler
-		return this
-	}
-
-	shortcuts(): Shortcut[] {
-		return this._shortcuts
-	}
-
-	show(): Dialog {
-		this.focusedBeforeShown = document.activeElement as HTMLElement
-		modal.display(this)
-		this.visible = true
-		return this
-	}
-
-	/**
-	 * Removes the dialog from the current view.
-	 */
-	close(): void {
-		this.visible = false
-		modal.remove(this)
-	}
-
-	/**
-	 * Should be called to close a dialog. Notifies the closeHandler about the close attempt.
-	 */
-	onClose(): void {
-		if (this.closeHandler) {
-			this.closeHandler()
-		} else {
-			this.close()
-		}
-	}
-
-	popState(e: Event): boolean {
-		this.onClose()
-		return false
-	}
-
-	callingElement(): HTMLElement | null {
-		return this.focusedBeforeShown
-	}
-
-	/**
-	 * Is invoked from modal as the two animations (background layer opacity and dropdown) should run in parallel
-	 * @returns {Promise.<void>}
-	 */
-	hideAnimation(): Promise<void> {
-		let bgcolor = getElevatedBackground()
-
-		if (this.domDialog) {
-			return Promise.all([
-				animations.add(this.domDialog.children, opacity(1, 0, true)),
-				animations.add(this.domDialog, alpha(AlphaEnum.BackgroundColor, bgcolor, 1, 0), {
-					delay: DefaultAnimationTime / 2,
-					easing: ease.linear,
-				}),
-			]).then(noOp)
-		} else {
-			return Promise.resolve()
-		}
-	}
-
-	backgroundClick(e: MouseEvent) {}
 
 	/**
 	 * show a dialog with only a "ok" button
@@ -1187,7 +1036,23 @@ export class Dialog implements ModalComponent {
 					/** fixed-height header with a title, left and right buttons that's fixed to the top of the dialog's area */
 					headerBarAttrs.noHeader ? null : m(DialogHeaderBar, headerBarAttrs),
 					/** variable-size child container that may be scrollable. */
-					m(".scroll.hide-outline.plr-24.flex-grow", { style: { "overflow-x": "hidden" } }, m(child, childAttrs)),
+					m(
+						".scroll.hide-outline.plr-24.flex-grow",
+						{
+							style: { "overflow-x": "hidden" },
+							// onscroll: (event: Event) => {
+							// 	console.log("SCROLL!!!!")
+							// 	;(event.target! as HTMLElement).scrollTo({ left: 0 })
+							// },
+						},
+						m(child, {
+							...childAttrs,
+							onscroll: (event: Event) => {
+								console.log("SCROLL!!!!")
+								// ;(event.target! as HTMLElement).scrollTo({ left: 0 })
+							},
+						}),
+					),
 				]),
 		})
 	}
@@ -1247,6 +1112,157 @@ export class Dialog implements ModalComponent {
 	static onKeyboardSizeChanged(newSize: number): void {
 		Dialog.keyboardHeight = newSize
 		m.redraw()
+	}
+
+	setInjectionRight(injectionRightAttrs: DialogInjectionRightAttrs<any>) {
+		this.injectionRightAttrs = injectionRightAttrs
+	}
+
+	/**
+	 * By default, the focus is set on the first text field after this dialog is fully visible.
+	 * This behavior can be overwritten by calling this function.
+	 * If it has already been called, then calls it instantly
+	 */
+	setFocusOnLoadFunction(callback: Dialog["focusOnLoadFunction"]): this {
+		this.focusOnLoadFunction = callback
+
+		if (this.wasFocusOnLoadCalled) {
+			this.focusOnLoadFunction(assertNotNull(this.domDialog))
+		}
+		return this
+	}
+
+	addShortcut(shortcut: Shortcut): Dialog {
+		this._shortcuts.push(shortcut)
+
+		if (this.visible) {
+			KeyManager.get().registerModalShortcuts([shortcut])
+		}
+
+		return this
+	}
+
+	/**
+	 * Sets a close handler to the dialog. If set the handler will be notified when onClose is called on the dialog.
+	 * The handler must is then responsible for closing the dialog.
+	 */
+	setCloseHandler(closeHandler: (() => unknown) | null): Dialog {
+		this.closeHandler = closeHandler
+		return this
+	}
+
+	shortcuts(): Shortcut[] {
+		return this._shortcuts
+	}
+
+	show(): Dialog {
+		this.focusedBeforeShown = document.activeElement as HTMLElement
+		modal.display(this)
+		this.visible = true
+		return this
+	}
+
+	/**
+	 * Removes the dialog from the current view.
+	 */
+	close(): void {
+		this.visible = false
+		modal.remove(this)
+	}
+
+	/**
+	 * Should be called to close a dialog. Notifies the closeHandler about the close attempt.
+	 */
+	onClose(): void {
+		if (this.closeHandler) {
+			this.closeHandler()
+		} else {
+			this.close()
+		}
+	}
+
+	popState(e: Event): boolean {
+		this.onClose()
+		return false
+	}
+
+	callingElement(): HTMLElement | null {
+		return this.focusedBeforeShown
+	}
+
+	/**
+	 * Is invoked from modal as the two animations (background layer opacity and dropdown) should run in parallel
+	 * @returns {Promise.<void>}
+	 */
+	hideAnimation(): Promise<void> {
+		let bgcolor = getElevatedBackground()
+
+		if (this.domDialog) {
+			return Promise.all([
+				animations.add(this.domDialog.children, opacity(1, 0, true)),
+				animations.add(this.domDialog, alpha(AlphaEnum.BackgroundColor, bgcolor, 1, 0), {
+					delay: DefaultAnimationTime / 2,
+					easing: ease.linear,
+				}),
+			]).then(noOp)
+		} else {
+			return Promise.resolve()
+		}
+	}
+
+	backgroundClick(e: MouseEvent) {}
+
+	private defaultFocusOnLoad(dom: HTMLElement) {
+		const inputs = Array.from(dom.querySelectorAll(INPUT)) as Array<HTMLElement>
+		const scrollableWrapper = dom.querySelector(".dialog-container.scroll") as HTMLElement | null
+
+		if (inputs.length > 0) {
+			inputs[0].focus()
+		} else if (!scrollableWrapper) {
+			let button = dom.querySelector("button")
+
+			if (button) {
+				button.focus()
+			}
+		} else {
+			scrollableWrapper.tabIndex = Number(TabIndex.Default)
+			scrollableWrapper.focus()
+		}
+	}
+
+	private getDialogWrapperClasses(dialogType: DialogType): string {
+		// change direction of axis to handle resize of dialogs (iOS keyboard open changes size)
+		let dialogWrapperStyle = ".fill-absolute.flex.items-stretch.flex-column"
+
+		if (dialogType === DialogType.EditLarge) {
+			dialogWrapperStyle += ".flex-start"
+		} else {
+			dialogWrapperStyle += ".flex-center" // vertical alignment
+		}
+
+		return dialogWrapperStyle
+	}
+
+	private getDialogStyle(dialogType: DialogType): string {
+		let dialogStyle = ".dialog.elevated-bg.flex-grow.border-radius-top-8"
+
+		if (dialogType === DialogType.Progress) {
+			dialogStyle += ".dialog-width-s.dialog-progress.border-radius-bottom-8"
+		} else if (dialogType === DialogType.Alert) {
+			dialogStyle += ".dialog-width-alert.pt-16.border-radius-bottom-8"
+		} else if (dialogType === DialogType.Reminder) {
+			dialogStyle += ".dialog-width-m.pt-16.flex.flex-column.border-radius-bottom-8"
+		} else if (dialogType === DialogType.EditSmall) {
+			dialogStyle += ".dialog-width-s.flex.flex-column.border-radius-bottom-8"
+		} else if (dialogType === DialogType.EditMedium) {
+			dialogStyle += ".dialog-width-m.border-radius-bottom-8"
+		} else if (dialogType === DialogType.EditLarge || dialogType === DialogType.EditLarger) {
+			dialogStyle += ".dialog-width-l.border-radius-bottom-8"
+		} else if (dialogType === DialogType.SetupWizard) {
+			dialogStyle = ".dialog.flex-grow.border-radius-top-8.dialog-width-l.border-radius-bottom-8.nav-bg"
+		}
+
+		return dialogStyle
 	}
 }
 
