@@ -2568,6 +2568,6 @@ export type TranslationKeyType =
 	| "labelMustBeSelected_msg"
 	| "confirmTrashAction_label"
 	| "confirmMoveFolderToTrash_msg"
-	| "deactivateInboxRules_msg"
+	| "affectedInboxRules_msg"
 	| "pleaseSelectFolder_msg"
 	| "inboxRuleInvalid_label"

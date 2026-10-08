@@ -2569,7 +2569,7 @@ export default {
 		"labelMustBeSelected_msg": "Mindestens ein Label muss ausgewählt werden.",
 		"confirmTrashAction_label": "Wegwurf bestätigen",
 		"confirmMoveFolderToTrash_msg": "Möchten Sie den Ordner '{1}' wirklich in den Papierkorb verschieben? Ordner oder Unterordner, die keine E-Mails enthalten, werden unwiderruflich gelöscht.",
-		"deactivateInboxRules_msg": "{1} Posteingangsregeln werden deaktiviert",
+		"affectedInboxRules_msg": "{1} Posteingangsregeln wären betroffen",
 		"pleaseSelectFolder_msg": "Bitte wählen Sie einen Ordner aus.",
 		"inboxRuleInvalid_label": "Diese Posteingangsregel enthält ungültige Werte. Bitte bearbeiten Sie sie, um den Fehlerzustand zu beheben.",
 	}

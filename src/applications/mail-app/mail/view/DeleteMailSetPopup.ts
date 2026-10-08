@@ -61,7 +61,7 @@ class DeleteMailSetDialog implements Component<DeleteMailSetDialogAttrs> {
 			attrs.affectedInboxRuleNames.length > 0
 				? m(SectionButton, {
 						leftIcon: { icon: Icons.FunnelFilled, title: "inboxRulesSettings_action" },
-						text: lang.getTranslation("deactivateInboxRules_msg", { "{1}": attrs.affectedInboxRuleNames.length }),
+						text: lang.getTranslation("affectedInboxRules_msg", { "{1}": attrs.affectedInboxRuleNames.length }),
 						// injectionRight: model.editModels.whoModel.guests.length > 0 ? m("span", model.editModels.whoModel.guests.length) : null,
 						onclick: () => {
 							// FIXME this.transitionTo(EditorPages.GUESTS, navigationCallback)

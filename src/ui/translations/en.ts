@@ -2569,7 +2569,7 @@ export default {
 		"inboxRuleCCRecipientEquals_action": "\"Cc\" recipient is",
 		"confirmTrashAction_label": "Confirm trash action",
 		"confirmMoveFolderToTrash_msg": "Do you really want to move folder '{1}' to trash? Folders and subfolders which don't contain any emails will be permanently deleted.",
-		"deactivateInboxRules_msg": "{1} inbox rules will be deactivated",
+		"affectedInboxRules_msg": "{1} inbox rules would be affected",
 		"pleaseSelectFolder_msg": "Please select a folder.",
 		"inboxRuleInvalid_label": "This inbox rule contains invalid values. Please edit it to fix the fault condition.",
 		"pleaseRemoveDeletedLabels_msg": "Please remove deleted labels."
