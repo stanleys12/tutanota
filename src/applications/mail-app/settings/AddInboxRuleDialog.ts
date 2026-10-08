@@ -23,7 +23,7 @@ import {
 	InboxRuleCondition,
 	MailSet,
 } from "@tutao/entities/tutanota"
-import { InboxRuleConditionType, InboxRuleActionType, MailSetKind } from "../../../entities/tutanota/Utils"
+import { InboxRuleActionType, InboxRuleConditionType, MailSetKind } from "../../../entities/tutanota/Utils"
 import { Icons } from "../../../ui/base/icons/Icons"
 import { Card } from "../../../ui/base/Card"
 import { Icon, IconSize } from "../../../ui/base/Icon"
@@ -36,7 +36,7 @@ import { onbeforeremoveColapseAnimation, oncreateExpandAnimation } from "../../.
 import { IconButton } from "../../../ui/base/IconButton"
 import { ButtonSize } from "../../../ui/base/ButtonSize"
 import { SelectorItem } from "../../../ui/base/DropDownSelector"
-import { getInboxRuleConditionTypeNameMapping, getInboxRuleActionTypeNameMapping } from "../mail/model/InboxRuleHandler"
+import { getInboxRuleActionTypeNameMapping, getInboxRuleConditionTypeNameMapping } from "../mail/model/InboxRuleHandler"
 import { InboxRuleModel } from "../mail/model/InboxRuleModel"
 import { applyRuleWithProgress } from "./InboxRuleSettingsViewer"
 import { LabelsDropDownSelector } from "../mail/view/LabelsDropDownSelector"
@@ -123,7 +123,7 @@ export async function show(
 							valueFolder: stream(value),
 							valueLabels: stream([]),
 							key: currentRowKey++,
-							valid: null,
+							valid: action.type === InboxRuleActionType.MOVE && value == null ? false : null,
 						}
 					})
 					.reduce((actions, action) => {
@@ -485,6 +485,9 @@ export async function show(
 						const labelId = validateInboxRuleAction(action.type(), label)
 						ruleActions.push(createInboxRuleAction({ type: action.type(), value: labelId }))
 					}
+				} else if (action.type() === InboxRuleActionType.MOVE && action.valueFolder() == null) {
+					Dialog.message("pleaseSelectFolder_msg")
+					alreadyMessaged = true
 				} else {
 					const valueId = validateInboxRuleAction(action.type(), action.valueFolder())
 					ruleActions.push(createInboxRuleAction({ type: action.type(), value: valueId }))
@@ -598,9 +601,16 @@ function getRuleActionValueInputByType(ruleAction: InboxRuleActionField) {
 				m(DropDownSelectorNew, {
 					items: targetFolders,
 					selectedValue: ruleAction.valueFolder(),
-					selectedValueDisplay: getMailSetName(assertNotNull(ruleAction.valueFolder())),
-					selectionChangedHandler: ruleAction.valueFolder,
-					class: "",
+					selectedValueDisplay:
+						ruleAction.valueFolder() == null
+							? lang.getTranslationText("deletedFolder_label")
+							: getMailSetName(assertNotNull(ruleAction.valueFolder())),
+					selectionChangedHandler: (value: MailSet) => {
+						ruleAction.valid = true
+						ruleAction.valueFolder(value)
+					},
+					class: ruleAction.valid === false ? "error-text-field" : undefined,
+					helpLabel: ruleAction.valid === false ? () => lang.getTranslationText("pleaseSelectFolder_msg") : undefined,
 				})
 		case InboxRuleActionType.LABEL:
 			return (labels: TargetMailSet[]) =>

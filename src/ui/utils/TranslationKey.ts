@@ -2570,3 +2570,4 @@ export type TranslationKeyType =
 	| "confirmToss_label"
 	| "confirmMoveFolderToTrash_msg"
 	| "deactivateInboxRules_msg"
+	| "pleaseSelectFolder_msg"
