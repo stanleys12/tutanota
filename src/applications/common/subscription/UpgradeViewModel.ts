@@ -84,4 +84,8 @@ export class UpgradeViewModel implements PlanSelectionModel, PaymentDetailsModel
 		this.invoiceData.country = country
 		this.accountingInfo.paypalBillingAgreement = null
 	}
+
+	hasPrices(): boolean {
+		return true
+	}
 }

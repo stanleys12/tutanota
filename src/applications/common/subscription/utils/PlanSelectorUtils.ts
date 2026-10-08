@@ -166,7 +166,8 @@ export function hasRelevantGlobalFirstYearCampaign(
 		.some((v) => v.discountType === "GlobalFirstYear" || v.discountType === "BonusMonthsAndGlobalFirstYear")
 }
 
-export function getDiscountDetails(isApplePrice: boolean, priceAndConfigProvider: PriceAndConfigProvider): DiscountDetails {
+export function getDiscountDetails(_isApplePrice: boolean, priceAndConfigProvider: PriceAndConfigProvider): DiscountDetails {
+	const isApplePrice = priceAndConfigProvider.getMobilePrices() != null
 	const discountDetails: DiscountDetails = {}
 	const pricingData = priceAndConfigProvider.getRawPricingData()
 
@@ -203,7 +204,12 @@ export function getDiscountDetails(isApplePrice: boolean, priceAndConfigProvider
 			: priceAndConfigProvider.getRawPricingData().hasGlobalFirstYearDiscount
 	}
 
-	const targetPlans = isApplePrice ? NewPersonalPaidPlans : AvailablePlans
+	let targetPlans: ReadonlyArray<AvailablePlanType>
+	if (isApplePrice) {
+		targetPlans = priceAndConfigProvider.getMobilePrices().size == 0 ? [] : NewPersonalPaidPlans
+	} else {
+		targetPlans = AvailablePlans
+	}
 	for (const targetPlan of targetPlans) {
 		const priceKey = planTypeToPriceKey[targetPlan]
 		const bonusMonths = Number(pricingData[priceKey].bonusMonthsForYearlyPlan)

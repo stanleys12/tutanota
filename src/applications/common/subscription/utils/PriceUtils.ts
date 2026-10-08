@@ -166,8 +166,13 @@ export class PriceAndConfigProvider {
 		this.upgradePriceData = await serviceExecutor.execute(UpgradePriceService_GET, data, null)
 		if (EnvProvider.get().getPaymentSetup() !== PaymentSetup.Default) {
 			this.mobilePrices = new Map()
-
-			const allPrices = await locator.mobilePaymentsFacade.getPlanPrices()
+			let allPrices: ReadonlyArray<MobilePlanPrice>
+			try {
+				allPrices = await locator.mobilePaymentsFacade.getPlanPrices()
+			} catch (e) {
+				console.error("failed to get mobile prices:", e)
+				allPrices = []
+			}
 			for (const plan of allPrices) {
 				this.mobilePrices.set(plan.name, plan)
 			}

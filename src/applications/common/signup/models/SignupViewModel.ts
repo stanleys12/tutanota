@@ -180,6 +180,9 @@ export class SignupViewModel implements PlanSelectionModel, PaymentDetailsModel,
 		if (EnvProvider.get().getPaymentSetup() !== PaymentSetup.Default) {
 			this.options.businessUse(false)
 			const appstoreSubscriptionOwnership = await queryExternalSubscriptionOwnership(null)
+			if (appstoreSubscriptionOwnership == null) {
+				return lang.getTranslation("appStoreSubscriptionError_msg")
+			}
 			// if we are on iOS/google play we only show other plans if there's no subscription for this Apple ID/Google ID.
 			if (appstoreSubscriptionOwnership !== MobilePaymentSubscriptionOwnership.NoSubscription) {
 				this.acceptedPlans = this.acceptedPlans.filter((plan) => plan === PlanType.Free)
@@ -189,5 +192,13 @@ export class SignupViewModel implements PlanSelectionModel, PaymentDetailsModel,
 			}
 		}
 		return null
+	}
+
+	hasPrices(): boolean {
+		if (this.planPrices?.getMobilePrices() != null) {
+			return this.planPrices.getMobilePrices().size != 0
+		} else {
+			return this.planPrices?.getRawPricingData().plans.length != 0
+		}
 	}
 }

@@ -40,6 +40,7 @@ import { EntityUpdateData, EntityUpdatesListener, isUpdateFor, ListenerPriority 
 import { CacheMode, DEFAULT_ENTITY_RESTCLIENT_LOAD_OPTIONS } from "../../../../platform-kit/instance-pipeline/RestClientOptions"
 import { reverse } from "../../misc/EnumUtils"
 import { idToElementId } from "@tutao/meta"
+import { MobilePaymentError } from "../../api/common/error/MobilePaymentError"
 
 export const enum UpgradeType {
 	/**
@@ -357,8 +358,17 @@ function hasMatchingExternalSubscription(lastBooking: Booking | null): boolean {
 }
 
 /** Check if the latest transaction using the current Store Account belongs to the user */
-export async function queryExternalSubscriptionOwnership(foreignKey: string | null): Promise<MobilePaymentSubscriptionOwnership> {
-	return await locator.mobilePaymentsFacade.queryExternalSubscriptionOwnership(foreignKey)
+export async function queryExternalSubscriptionOwnership(foreignKey: string | null): Promise<MobilePaymentSubscriptionOwnership | null> {
+	try {
+		return await locator.mobilePaymentsFacade.queryExternalSubscriptionOwnership(foreignKey)
+	} catch (e) {
+		if (e instanceof MobilePaymentError) {
+			console.error("failed to query external subscription ownership")
+			return null
+		} else {
+			throw e
+		}
+	}
 }
 
 // we can't do the upgrade from the client because apple or google is supposed to contact us.

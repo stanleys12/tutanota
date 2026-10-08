@@ -17,4 +17,5 @@ export interface PlanSelectionModel {
 	bonusMonthForYearlyPlans: number
 	personalPlansAvailable: boolean
 	messageBoxMessage?: Translation | null
+	hasPrices: () => boolean
 }

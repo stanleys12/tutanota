@@ -681,8 +681,8 @@ export class SubscriptionSettingsViewer implements UpdatableSettingsViewer {
 		}
 	}
 
-	private async canManageExternalSubscriptionInApp(ownership: MobilePaymentSubscriptionOwnership): Promise<boolean> {
-		if (ownership === MobilePaymentSubscriptionOwnership.NotOwner) {
+	private async canManageExternalSubscriptionInApp(ownership: MobilePaymentSubscriptionOwnership | null): Promise<boolean> {
+		if (ownership == null || ownership === MobilePaymentSubscriptionOwnership.NotOwner) {
 			// we have a subscription with the external provider for this app (calendar / mail / drive), but it's for another tuta account.
 			// we could technically manage it from this tuta account, but we should not allow it because it's too easy to
 			// confuse which subscription belongs to which tuta account.
