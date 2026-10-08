@@ -174,7 +174,7 @@ class AndroidArchiveDownloaderFacade(
 
 		suspend fun init() {
 			sqlCipherFacade.run(
-				"INSERT OR REPLACE INTO encrypted_blobs_metadata (archiveId, typeRef, modelVersion, serverHostname) VALUES (?, ?, ?, ?)",
+				"INSERT OR REPLACE INTO encrypted_blobs_metadata (archiveId, type, modelVersion, serverHostname) VALUES (?, ?, ?, ?)",
 				listOf(archiveId, typeRef, modelVersion, serverHostname)
 			)
 		}
@@ -198,7 +198,7 @@ class AndroidArchiveDownloaderFacade(
 		private suspend fun store() {
 			if (!closed && blobs.isNotEmpty()) {
 				sqlCipherFacade.run(
-					"INSERT OR REPLACE INTO encrypted_blobs (typeRef, archiveId, blobId, modelVersion, data) VALUES (?, ?, ?, ?, ?)" + ", (?, ?, ?, ?, ?)"
+					"INSERT OR REPLACE INTO encrypted_blobs (type, archiveId, blobId, modelVersion, data) VALUES (?, ?, ?, ?, ?)" + ", (?, ?, ?, ?, ?)"
 						.repeat(blobs.size - 1),
 					Array(blobs.size) { _ -> 0 }
 						.flatMapIndexed { i, _ ->

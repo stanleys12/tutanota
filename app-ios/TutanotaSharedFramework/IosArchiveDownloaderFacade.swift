@@ -122,7 +122,7 @@ private final class ArchiveStorageHelper {
 
 	func initialize() async throws {
 		try await sqlCipherFacade.run(
-			"INSERT OR REPLACE INTO encrypted_blobs_metadata (archiveId, typeRef, modelVersion, serverHostname) VALUES (?, ?, ?, ?)",
+			"INSERT OR REPLACE INTO encrypted_blobs_metadata (archiveId, type, modelVersion, serverHostname) VALUES (?, ?, ?, ?)",
 			[self.archiveId, self.typeRef, self.modelVersion, self.serverHostname]
 		)
 	}
@@ -144,7 +144,7 @@ private final class ArchiveStorageHelper {
 	private func store() async throws {
 		if !self.closed && !self.blobs.isEmpty {
 			try await sqlCipherFacade.run(
-				"INSERT OR REPLACE INTO encrypted_blobs (typeRef, archiveId, blobId, modelVersion, data) VALUES (?, ?, ?, ?, ?)"
+				"INSERT OR REPLACE INTO encrypted_blobs (type, archiveId, blobId, modelVersion, data) VALUES (?, ?, ?, ?, ?)"
 					+ String(repeating: ", (?, ?, ?, ?, ?)", count: self.blobs.count - 1),
 				self.blobs.indices.flatMap { i in
 					[
