@@ -97,7 +97,13 @@ export async function showEditFolderDialog(
 			} else {
 				// if it is being moved to trash (and not already in trash), ask about trashing
 				if (selectedParentFolder?.folderType === MailSetKind.TRASH && !isSameId(selectedParentFolder._id, editedFolder.parentFolder)) {
-					const confirmed = await showDeleteFolderPopup(getMailSetName(editedFolder), [])
+					const descendants = folders.getDescendantFoldersOfParent(editedFolder._id)
+					const allFoldersBeingDeleted = [...descendants.map((set) => set.mailSet), editedFolder]
+					const allInboxRulesBeingModified = await mailLocator.inboxRuleModel.getInboxRulesThatReferenceMailSets(allFoldersBeingDeleted)
+					const confirmed = await showDeleteFolderPopup(
+						getMailSetName(editedFolder),
+						allInboxRulesBeingModified.map((rule) => rule.name),
+					)
 					if (!confirmed) return
 
 					await locator.mailFacade.updateMailFolderName(editedFolder, folderNameValue)
