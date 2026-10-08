@@ -2571,6 +2571,7 @@ export default {
  		"confirmToss_label": "Confirm toss",
 		"confirmMoveFolderToTrash_msg": "Do you really want to move folder '{1}' to trash? Folders and subfolders which don't contain any emails will be permanently deleted.",
 		"deactivateInboxRules_msg": "{1} inbox rules will be deactivated",
-		"pleaseSelectFolder_msg": "Please select a folder."
+		"pleaseSelectFolder_msg": "Please select a folder.",
+		"inboxRuleInvalid_label": "This inbox rule contains invalid values. Please edit it to fix the fault condition."
 	}
 }

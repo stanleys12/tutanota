@@ -2571,6 +2571,7 @@ export default {
 		"confirmToss_label": "Löschen bestätigen",
 		"confirmMoveFolderToTrash_msg": "Möchten Sie den Ordner '{1}' wirklich in den Papierkorb verschieben? Ordner oder Unterordner, die keine E-Mails enthalten, werden unwiderruflich gelöscht.",
 		"deactivateInboxRules_msg": "{1} Posteingangsregeln werden deaktiviert",
-		"pleaseSelectFolder_msg": "Bitte wählen Sie einen Ordner aus."
+		"pleaseSelectFolder_msg": "Bitte wählen Sie einen Ordner aus.",
+		"inboxRuleInvalid_label": "Diese Posteingangsregel enthält ungültige Werte. Bitte bearbeiten Sie sie, um den Fehlerzustand zu beheben."
 	}
 }

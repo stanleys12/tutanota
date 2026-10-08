@@ -186,4 +186,11 @@ export class InboxRuleModel {
 			await this.updateInboxRule(rule)
 		}
 	}
+
+	isInboxRuleValid(rule: ExpandedInboxRule) {
+		// a rule may become invalid when a folder or label is deleted
+		return !rule.actions.some(
+			(action) => action.value == null && [InboxRuleActionType.MOVE, InboxRuleActionType.LABEL].includes(action.type as InboxRuleActionType),
+		)
+	}
 }

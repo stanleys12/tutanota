@@ -2571,3 +2571,4 @@ export type TranslationKeyType =
 	| "confirmMoveFolderToTrash_msg"
 	| "deactivateInboxRules_msg"
 	| "pleaseSelectFolder_msg"
+	| "inboxRuleInvalid_label"
