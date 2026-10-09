@@ -473,6 +473,46 @@ o.spec("DesktopFileFacade", function () {
 		})
 	})
 
+	o.spec("readDataFile", function () {
+		const fileContent = Buffer.from([1, 2, 3])
+
+		o.beforeEach(function () {
+			when(path.isAbsolute(matchers.anything())).thenDo((p) => nodePath.posix.isAbsolute(p))
+		})
+
+		o.test("reads a file url", async function () {
+			when(fs.promises.readFile(urlLike("file:///home/u/b.pdf"))).thenResolve(fileContent)
+			const dataFile = await ff.readDataFile("file:///home/u/b.pdf")
+			o.check(dataFile?.name).equals("b.pdf")
+			o.check(dataFile?.mimeType).equals("application/pdf")
+			o.check(dataFile?.data).deepEquals(fileContent)
+		})
+
+		o.test("reads an absolute posix path", async function () {
+			when(fs.promises.readFile(urlLike("file:///home/u/b.pdf"))).thenResolve(fileContent)
+			const dataFile = await ff.readDataFile("/home/u/b.pdf")
+			o.check(dataFile?.name).equals("b.pdf")
+			o.check(dataFile?.data).deepEquals(fileContent)
+		})
+
+		o.test("reads an absolute windows path", async function () {
+			process.platform = "win32"
+			when(path.isAbsolute("C:\\Users\\a\\b.pdf")).thenReturn(true)
+			when(fs.promises.readFile(urlLike("file:///C:/Users/a/b.pdf"))).thenResolve(fileContent)
+			const dataFile = await ff.readDataFile("C:\\Users\\a\\b.pdf")
+			o.check(dataFile?.name).equals("b.pdf")
+			o.check(dataFile?.data).deepEquals(fileContent)
+		})
+
+		o.test("rejects a relative path", async function () {
+			await o.check(() => ff.readDataFile("u/b.pdf")).asyncThrows(ProgrammingError)
+		})
+
+		o.test("rejects a non-file url", async function () {
+			await o.check(() => ff.readDataFile("http://x/b.pdf")).asyncThrows(ProgrammingError)
+		})
+	})
+
 	o.spec("getMimeTypeForFile", function () {
 		o.test("given lowercased four-letter extension it returns the correct mime type", async function () {
 			o.check(await getMimeTypeForFile(new URL("file:///tmp/picture.jpg"))).equals("image/jpeg")

@@ -373,8 +373,8 @@ export class DesktopFileFacade implements FileFacade {
 
 	/** this is used to read unencrypted data from arbitrary locations */
 	async readDataFile(fileUrl: FileUri): Promise<DataFile | null> {
-		const url = fileUrlFromString(fileUrl)
-		const name = path.basename(fileURLToPath(fileUrl))
+		const url = this.path.isAbsolute(fileUrl) ? pathToFileURL(fileUrl, { windows: this.process.platform === "win32" }) : fileUrlFromString(fileUrl)
+		const name = path.basename(fileURLToPath(url))
 		try {
 			const [data, mimeType] = await Promise.all([
 				this.fs.promises.readFile(url),
